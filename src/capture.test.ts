@@ -27,6 +27,7 @@ function makeBaseDeps() {
         TIMEZONE: 'Asia/Jakarta',
         SCREENSHOT_FORMAT: 'png',
         DISCORD_MESSAGE_PREFIX: 'Test capture',
+        DISCORD_MESSAGE_BODY: 'PIC: <@1324595214119211070>',
       },
       now: () => new Date('2024-05-18T09:00:00+07:00'),
       sleep: async (ms: number) => {
@@ -53,9 +54,9 @@ describe('runCapture', () => {
     const payloadRaw = formData.get('payload_json') as string;
     expect(payloadRaw).toBeDefined();
     const payload = JSON.parse(payloadRaw);
-    expect(payload.content).toBe('\nTest capture\nTime: 18 May 2024, 09:00:00 GMT+7');
+    expect(payload.content).toBe('\nTest capture\nPIC: <@1324595214119211070>\nTime: 18 May 2024, 09:00:00 GMT+7');
     expect(payload.content).not.toContain('PC:');
-    expect(payload.allowed_mentions).toEqual({ parse: [] });
+    expect(payload.allowed_mentions).toEqual({ parse: ['users'] });
 
     const file = formData.get('files[0]') as Blob;
     expect(file).toBeInstanceOf(Blob);
@@ -66,6 +67,14 @@ describe('runCapture', () => {
     expect(logs).toHaveLength(1);
     expect(logs[0]).toMatch(/^\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] Screenshot uploaded successfully\.$/);
   });
+  test('omits body line when DISCORD_MESSAGE_BODY is empty or unset', async () => {
+    const { deps, posts } = makeBaseDeps();
+    delete deps.env.DISCORD_MESSAGE_BODY;
+    await runCapture(deps);
+    const payload = JSON.parse(posts[0].body.get('payload_json') as string);
+    expect(payload.content).toBe('\nTest capture\nTime: 18 May 2024, 09:00:00 GMT+7');
+  });
+
 
   test('passes selected display screen ID to capture function', async () => {
     const { deps } = makeBaseDeps();

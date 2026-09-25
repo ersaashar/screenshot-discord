@@ -74,6 +74,7 @@ export async function runCapture(deps: CaptureDeps = {}): Promise<void> {
   }
 
   const prefix = env.DISCORD_MESSAGE_PREFIX !== undefined ? env.DISCORD_MESSAGE_PREFIX.trim() : 'Screen capture';
+  const body = (env.DISCORD_MESSAGE_BODY ?? '').trim();
 
   const rawDisplay = env.SCREENSHOT_DISPLAY?.trim();
   let screenId: string | undefined;
@@ -121,8 +122,13 @@ export async function runCapture(deps: CaptureDeps = {}): Promise<void> {
     timeZoneName: 'short',
   });
   const displayTime = formatter.format(captureDate);
-  const content = prefix.length > 0 ? `\n${prefix}\nTime: ${displayTime}` : `\nTime: ${displayTime}`;
-  const payloadJson = JSON.stringify({ content, allowed_mentions: { parse: [] } });
+  const parts: string[] = [];
+  if (prefix.length > 0) parts.push(prefix);
+  if (body.length > 0) parts.push(body);
+  parts.push(`Time: ${displayTime}`);
+  const content = '\n' + parts.join('\n');
+  // ponytail: allowed_mentions parses only users; add 'roles' when role mentions needed.
+  const payloadJson = JSON.stringify({ content, allowed_mentions: { parse: ['users'] } });
   const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
 
   for (let attempt = 1; attempt <= 2; attempt++) {

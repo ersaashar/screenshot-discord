@@ -54,7 +54,9 @@ Settings are loaded automatically by Bun from `.env` in the working directory:
 | `TIMEZONE` | No | `Asia/Jakarta` | IANA timezone string used to format the time displayed in Discord messages. |
 | `SCREENSHOT_FORMAT` | No | `png` | Image format: `png` or `jpg`. |
 | `SCREENSHOT_DISPLAY` | No | *(primary)* | 1-based display index. Omit to capture primary display. Run `bun run displays` to list connected displays. |
+| `CAPTURE_SCHEDULE` | No | `0 9,13,17 * * *` | Cron expression (5-field: minute hour dom month dow). Controls Windows Task Scheduler triggers created by `register-task.ps1`. |
 | `DISCORD_MESSAGE_PREFIX` | No | `Screen capture` | Header text preceding the timestamp in Discord message. |
+| `DISCORD_MESSAGE_BODY` | No | *(none)* | Free-text line inserted between prefix and timestamp. Supports Discord mentions, e.g. `PIC: <@USER_ID>` to tag users. |
 
 > **Note on Timezones:** The `TIMEZONE` variable controls how the date and time string is formatted inside the Discord message. Scheduled execution times configured in Windows Task Scheduler always evaluate against the local system clock.
 
@@ -62,11 +64,10 @@ Settings are loaded automatically by Bun from `.env` in the working directory:
 
 When triggered, the utility posts a multipart message to Discord:
 
-```text
 Screen capture
+PIC: <@1324595214119211070>
 Time: 18 May 2024, 09:00:00 GMT+7
 [screenshot.png attached]
-```
 
 Console logs a single status line on completion:
 ```text
@@ -83,7 +84,7 @@ Run the registration script from PowerShell in the repository root:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\register-task.ps1
 ```
 
-The script registers a task named `Screen Capture to Discord` configured for the current interactive user with triggers at 09:00, 13:00, and 17:00 daily. If a task with that name already exists, the script aborts without overwriting.
+The script registers a task named `Screen Capture to Discord` configured for the current interactive user with triggers parsed from `CAPTURE_SCHEDULE` in `.env` (defaults to 09:00, 13:00, and 17:00 daily). If a task with that name already exists, the script aborts without overwriting.
 
 To remove an existing task before re-registering:
 ```powershell
@@ -139,3 +140,4 @@ Unregister-ScheduledTask -TaskName "Screen Capture to Discord" -Confirm:$false
 - **Blank or black screenshot in Discord**: Ensure the workstation is unlocked and the user session is active when the scheduled task fires.
 - **`bun.exe` not found**: Verify Bun is installed and located in your system `PATH` or specify the absolute path in Task Scheduler.
 - **Task does not run on battery**: Open task properties in Task Scheduler, go to **Conditions**, and uncheck *Start the task only if the computer is on AC power*.
+- **`Invalid SCREENSHOT_DISPLAY: index N exceeds...`**: Run `bun run displays` to see available display indices and set a valid `SCREENSHOT_DISPLAY` value.
